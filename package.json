@@ -1,33 +1,37 @@
 {
-    "name"          : "node-red-node-fred",
-    "version"       : "0.0.0",
-    "description"   : "",
-    "dependencies"  : {
+  "name": "node-red-node-fred",
+  "version": "0.0.0",
+  "description": "",
+  "dependencies": {
+    "ws": "^1.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SenseTecnic/node-red-node-fred/"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "node-red",
+    "fred"
+  ],
+  "node-red": {
+    "nodes": {
+      "fred": "fred.js"
+    }
+  },
+  "author": {
+    "name": "Ted Huang",
+    "email": "tedh@sensetecnic.com",
+    "url": "http://sensetecnic.com"
+  },
+  "maintainers": [
+    {
+      "name": "Mike Blackstock",
+      "email": "mike@sensetecnic.com"
     },
-    "repository" : {
-        "type":"git",
-        "url":"https://github.com/SenseTecnic/node-red-node-fred/"
-    },
-    "license": "Apache-2.0",
-    "keywords": [ "node-red", "fred" ],
-    "node-red"      : {
-        "nodes"     : {
-            "fred": "fred.js"
-        }
-    },
-    "author": {
-        "name": "Ted Huang",
-        "email": "tedh@sensetecnic.com",
-        "url": "http://sensetecnic.com"
-    },
-    "maintainers": [
-        {
-            "name": "Mike Blackstock",
-            "email": "mike@sensetecnic.com"
-        },
-        {
-            "name": "tedh",
-            "email": "tedh@sensetecnic.com"
-        }
-    ],
+    {
+      "name": "tedh",
+      "email": "tedh@sensetecnic.com"
+    }
+  ]
 }

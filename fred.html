@@ -1,0 +1,274 @@
+<!-- 
+ * Node for setting up connection to FRED
+ * Built on top of NodeRed core websocket node
+-->
+
+<script type="text/x-red" data-template-name="fred in">
+    <div class="form-row">
+        <label for="node-input-mode"><i class="fa fa-dot-circle-o"></i> <span data-i18n="fred.label.type"></span></label>
+        <select id="node-input-mode">
+            <option value="server" data-i18n="fred.listenon"></option>
+            <option value="client" data-i18n="fred.connectto" selected="selected"></option>
+        </select>
+    </div>
+    <div class="form-row" id="websocket-server-row">
+        <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.path"></span></label>
+        <input type="text" id="node-input-server">
+    </div>
+    <div class="form-row" id="fred-client-row">
+        <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.url"></span></label>
+        <input type="text" id="node-input-client">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="fred.label.name"></span></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]fred.label.name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="fred in">
+    <p>FRED web socket input node.</p>
+    <p>By default, the data received from the WebSocket will be in <code>msg.payload</code>.
+    The socket can be configured to expect a properly formed JSON string, in which
+    case it will parse the JSON and send on the resulting object as the entire message.</p>
+</script>
+
+<script type="text/javascript">
+
+(function() {
+
+    function ws_oneditprepare() {
+        $("#fred-client-row").hide();
+        $("#node-input-mode").change(function(){
+            if( $("#node-input-mode").val() === 'client') {
+                $("#websocket-server-row").hide();
+                $("#fred-client-row").show();
+            }
+            else {
+                $("#websocket-server-row").show();
+                $("#fred-client-row").hide();
+            }
+        });
+
+        if(this.client) {
+            $("#node-input-mode").val('client').change();
+        }
+        else {
+            $("#node-input-mode").val('server').change();
+        }
+    }
+
+    function ws_oneditsave() {
+        if($("#node-input-mode").val() === 'client') {
+            $("#node-input-server").append('<option value="">Dummy</option>');
+            $("#node-input-server").val('');
+        }
+        else {
+            $("#node-input-client").append('<option value="">Dummy</option>');
+            $("#node-input-client").val('');
+        }
+    }
+
+    function ws_label() {
+        var nodeid = (this.client)?this.client:this.server;
+        var wsNode = RED.nodes.node(nodeid);
+        return this.name||(wsNode?"[ws] "+wsNode.label():"websocket");
+    }
+
+    function ws_validateserver() {
+        if($("#node-input-mode").val() === 'client' || (this.client && !this.server)) {
+            return true;
+        }
+        else {
+            return RED.nodes.node(this.server) != null;
+        }
+    }
+
+    function ws_validateclient() {
+        if($("#node-input-mode").val() === 'client' || (this.client && !this.server)) {
+            return RED.nodes.node(this.client) != null;
+        }
+        else {
+            return true;
+        }
+    }
+
+    RED.nodes.registerType('fred in',{
+        category: 'input',
+        defaults: {
+            name: {value:""},
+            server: {type:"fred-listener", validate: ws_validateserver},
+            client: {type:"fred-client", validate: ws_validateclient}
+        },
+        color:"rgb(255, 255, 255)",
+        inputs:0,
+        outputs:1,
+        icon: "sts.png",
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        label: ws_label,
+        oneditsave: ws_oneditsave,
+        oneditprepare: ws_oneditprepare,
+    });
+
+    RED.nodes.registerType('fred out',{
+        category: 'output',
+        defaults: {
+            name: {value:""},
+            server: {type:"fred-listener", validate: ws_validateserver},
+            client: {type:"fred-client", validate: ws_validateclient}
+        },
+        color:"rgb(255, 255, 255)",
+        inputs:1,
+        outputs:0,
+        icon: "sts.png",
+        align: "right",
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        label: ws_label,
+        oneditsave: ws_oneditsave,
+        oneditprepare: ws_oneditprepare
+    });
+
+    RED.nodes.registerType('fred-listener',{
+        category: 'config',
+        defaults: {
+            path: {value:"",required:true,validate:RED.validators.regex(/^((?!\/debug\/ws).)*$/) },
+            wholemsg: {value:"false"}
+        },
+        inputs:0,
+        outputs:0,
+        label: function() {
+            var root = RED.settings.httpNodeRoot;
+            if (root.slice(-1) != "/") {
+                root = root+"/";
+            }
+            if (this.path.charAt(0) == "/") {
+                root += this.path.slice(1);
+            } else {
+                root += this.path;
+            }
+            return root;
+        },
+        oneditprepare: function() {
+            var root = RED.settings.httpNodeRoot;
+            if (root.slice(-1) == "/") {
+                root = root.slice(0,-1);
+            }
+            if (root == "") {
+                $("#node-config-ws-tip").hide();
+            } else {
+                $("#node-config-ws-path").html(root);
+                $("#node-config-ws-tip").show();
+            }
+        }
+    });
+
+    RED.nodes.registerType('fred-client',{
+        category: 'config',
+        defaults: {
+            path: {value:"",required:true,validate:RED.validators.regex(/^((?!\/debug\/ws).)*$/) },
+            username: {value: "", required:true,validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_]{3,}$/) },
+            apikey: {value: "", required:true},
+            wholemsg: {value:"false"}
+        },
+        inputs:0,
+        outputs:0,
+        label: function() {
+            return this.path;
+        }
+    });
+
+})();
+</script>
+
+<!-- fred out Node -->
+<script type="text/x-red" data-template-name="fred out">
+    <div class="form-row">
+        <label for="node-input-mode"><i class="fa fa-dot-circle-o"></i> <span data-i18n="fred.label.type"></span></label>
+        <select id="node-input-mode">
+            <option value="server" data-i18n="fred.listenon"></option>
+            <option value="client" data-i18n="fred.connectto"></option>
+        </select>
+    </div>
+    <div class="form-row" id="websocket-server-row">
+        <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.path"></span></label>
+        <input type="text" id="node-input-server">
+    </div>
+    <div class="form-row" id="fred-client-row">
+        <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.url"></span></label>
+        <input type="text" id="node-input-client">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="fred.label.name"></span></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]fred.label.name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="fred out">
+    <p>FRED web socket output node.</p>
+    <p>By default, <code>msg.payload</code> will be sent over the fred. The socket
+    can be configured to encode the entire <code>msg</code> object as a JSON string and send that
+    over the fred.</p>
+
+    <p>If the message arriving at this node started at a fred in node, the message
+    will be sent back to the client that triggered the flow. Otherwise, the message
+    will be broadcast to all connected clients.</p>
+    <p>If you want to broadcast a message that started at a fred in node, you
+    should delete the <code>msg._session</code> property within the flow.</p>
+</script>
+
+<!-- WebSocket Server configuration node -->
+<script type="text/x-red" data-template-name="fred-listener">
+    <div class="form-row">
+        <label for="node-config-input-path"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.path"></span></label>
+        <input type="text" id="node-config-input-path" placeholder="/example">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-wholemsg">&nbsp;</label>
+        <select type="text" id="node-config-input-wholemsg" style="width: 70%;">
+            <option value="false" data-i18n="fred.payload"></option>
+            <option value="true" data-i18n="fred.message"></option>
+        </select>
+    </div>
+    <div class="form-tips">
+        <span data-i18n="[html]fred.tip.path1"></span>
+        <p id="node-config-ws-tip"><span data-i18n="[html]fred.tip.path2"></span><code><span id="node-config-ws-path"></span></code>.</p>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="fred-listener">
+   <p>This configuration node creates a WebSocket Server using the specified path</p>
+</script>
+
+<!-- WebSocket Client configuration node -->
+<script type="text/x-red" data-template-name="fred-client">
+    <div class="form-row">
+        <label for="node-config-input-path"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.url"></span></label>
+        <input type="text" id="node-config-input-path" placeholder="ws://fred.sensetecnic.com.com/api/example">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-username"><i class="fa fa-user"></i> <span data-i18n="fred.label.username"></span></label>
+        <input type="text" id="node-config-input-username" placeholder="FRED username">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-apikey"><i class="fa fa-key"></i> <span data-i18n="fred.label.apikey"></span></label>
+        <input type="text" id="node-config-input-apikey" placeholder="FRED API key">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-wholemsg">&nbsp;</label>
+        <select type="text" id="node-config-input-wholemsg" style="width: 70%;">
+            <option value="false" data-i18n="fred.payload"></option>
+            <option value="true" data-i18n="fred.message"></option>
+        </select>
+    </div>
+    <div class="form-tips">
+        <p><span data-i18n="[html]fred.tip.url1"></span></p>
+        <span data-i18n="[html]fred.tip.url2"></span>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="fred-client">
+   <p>This configuration node connects a WebSocket client to the specified URL.</p>
+</script>
