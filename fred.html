@@ -71,7 +71,7 @@
     function ws_label() {
         var nodeid = (this.client)?this.client:this.server;
         var wsNode = RED.nodes.node(nodeid);
-        return this.name||(wsNode?"[ws] "+wsNode.label():"websocket");
+        return this.name||(wsNode?"[ws] "+wsNode.label():"FRED");
     }
 
     function ws_validateserver() {

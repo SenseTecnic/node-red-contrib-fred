@@ -9,6 +9,7 @@ module.exports = function(RED) {
   "use strict";
   var ws = require("ws");
   var inspect = require("util").inspect;
+  var FRED_UNAUTHORIZED_ERROR = 'unexpected server response (401)';
 
   // A node red node that sets up a local websocket server
   function WebSocketListenerNode(n) {
@@ -28,6 +29,7 @@ module.exports = function(RED) {
     // match absolute url
     node.isServer = !/^ws{1,2}:\/\//i.test(node.path);
     node.closing = false;
+    node.unauthorized = false;
 
     function startconn() {    // Connect to remote endpoint
       var socket = new ws(node.path, {
@@ -59,8 +61,7 @@ module.exports = function(RED) {
         } else { 
           node.emit('closed'); 
         }
-        if (!node.closing && !node.isServer) {
-          console.log('restarting')
+        if (!node.closing && !node.isServer && !node.unauthorized) { // don't reconnect if server returns 401 unauthorized
           if (node.tout) { 
             clearTimeout(node.tout); 
           }
@@ -71,13 +72,12 @@ module.exports = function(RED) {
         node.handleEvent(id,socket,'message',data,flags);
       });
       socket.on('error', function(err) {
-        node.emit('erro');
+        node.emit('erro', err.message);
 
-        console.log('error', err.code, err.message, err.name );
-
-
-
-        if (!node.closing && !node.isServer) {
+        if (!node.closing && !node.isServer && !node.unauthorized) {
+          if (err.message === FRED_UNAUTHORIZED_ERROR) {
+            node.unauthorized = true; // don't reconnect again if server returns 401 unauthorized
+          }
           if (node.tout) { 
             clearTimeout(node.tout); 
           }
@@ -221,11 +221,23 @@ module.exports = function(RED) {
     if (this.serverConfig) {
       this.serverConfig.registerInputNode(this);
       // TODO: nls
-      this.serverConfig.on('opened', function(n) { node.status({fill:"green",shape:"dot",text:"connected "+n}); });
-      this.serverConfig.on('erro', function() { node.status({fill:"red",shape:"ring",text:"error"}); });
-      this.serverConfig.on('closed', function() { node.status({fill:"red",shape:"ring",text:"disconnected"}); });
+      this.serverConfig.on('opened', function(n) { 
+        node.status({fill:"green",shape:"dot",text:"connected "+n}); 
+      });
+      this.serverConfig.on('erro', function(err) { 
+        if (err) {
+          node.error(RED._("fred.errors.connect-error")+inspect(err));
+          node.status({fill:"red",shape:"ring",text:err});
+        }
+        else {
+          node.status({fill:"red",shape:"ring",text:"error"}); 
+        }
+      });
+      this.serverConfig.on('closed', function() { 
+        node.status({fill:"red",shape:"ring",text:"disconnected"}); 
+      });
     } else {
-      this.error(RED._("websocket.errors.missing-conf"));
+      this.error(RED._("fred.errors.missing-conf"));
     }
 
     this.on('close', function() {
@@ -242,13 +254,25 @@ module.exports = function(RED) {
     this.serverConfig = RED.nodes.getNode(this.server);
 
     if (!this.serverConfig) {
-      this.error(RED._("websocket.errors.missing-conf"));
+      this.error(RED._("fred.errors.missing-conf"));
     }
     else {
       // TODO: nls
-      this.serverConfig.on('opened', function(n) { node.status({fill:"green",shape:"dot",text:"connected "+n}); });
-      this.serverConfig.on('erro', function() { node.status({fill:"red",shape:"ring",text:"error"}); });
-      this.serverConfig.on('closed', function() { node.status({fill:"red",shape:"ring",text:"disconnected"}); });
+      this.serverConfig.on('opened', function(n) { 
+        node.status({fill:"green",shape:"dot",text:"connected "+n}); 
+      });
+      this.serverConfig.on('erro', function(err) { 
+        if (err) {
+          node.error(RED._("fred.errors.connect-error")+inspect(err));
+          node.status({fill:"red",shape:"ring",text:err}); 
+        }
+        else {
+          node.status({fill:"red",shape:"ring",text:"error"}); 
+        }
+      });
+      this.serverConfig.on('closed', function() { 
+        node.status({fill:"red",shape:"ring",text:"disconnected"}); 
+      });
     }
     this.on("input", function(msg) {
       var payload;
@@ -269,7 +293,7 @@ module.exports = function(RED) {
         } else {
           node.serverConfig.broadcast(payload,function(error){
             if (!!error) {
-              node.warn(RED._("websocket.errors.send-error")+inspect(error));
+              node.warn(RED._("fred.errors.send-error")+inspect(error));
             }
           });
         }
