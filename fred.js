@@ -4,6 +4,7 @@
  * 
  */
 
+// var p = require('./package.json');
 
 module.exports = function(RED) {
   "use strict";
@@ -11,8 +12,11 @@ module.exports = function(RED) {
   var inspect = require("util").inspect;
   var FRED_UNAUTHORIZED_ERROR = 'unexpected server response (401)';
 
-  // A node red node that sets up a local websocket server
-  function WebSocketListenerNode(n) {
+  // var hostType = process.env.FRED_HOST_TYPE || p.config.hostType
+  // console.log("host type: "+hostType);
+
+  // A node red node that is either a FRED client or server
+  function FredEndpointNode(n) {
     // Create a RED node
     RED.nodes.createNode(this,n);
     var node = this;
@@ -150,14 +154,14 @@ module.exports = function(RED) {
       }
     });
   }
-  RED.nodes.registerType("fred-listener",WebSocketListenerNode);
-  RED.nodes.registerType("fred-client",WebSocketListenerNode);
+  RED.nodes.registerType("fred-server",FredEndpointNode);
+  RED.nodes.registerType("fred-client",FredEndpointNode);
 
-  WebSocketListenerNode.prototype.registerInputNode = function(/*Node*/handler) {
+  FredEndpointNode.prototype.registerInputNode = function(/*Node*/handler) {
     this._inputNodes.push(handler);
   }
 
-  WebSocketListenerNode.prototype.removeInputNode = function(/*Node*/handler) {
+  FredEndpointNode.prototype.removeInputNode = function(/*Node*/handler) {
     this._inputNodes.forEach(function(node, i, inputNodes) {
       if (node === handler) {
         inputNodes.splice(i, 1);
@@ -165,7 +169,7 @@ module.exports = function(RED) {
     });
   }
 
-  WebSocketListenerNode.prototype.handleEvent = function(id,/*socket*/socket,/*String*/event,/*Object*/data,/*Object*/flags){
+  FredEndpointNode.prototype.handleEvent = function(id,/*socket*/socket,/*String*/event,/*Object*/data,/*Object*/flags){
     var msg;
     if (this.wholemsg) {
       try {
@@ -185,7 +189,7 @@ module.exports = function(RED) {
     }
   }
 
-  WebSocketListenerNode.prototype.broadcast = function(data) {
+  FredEndpointNode.prototype.broadcast = function(data) {
     try {
       if(this.isServer) {
         for (var i = 0; i < this.server.clients.length; i++) {
@@ -201,7 +205,7 @@ module.exports = function(RED) {
     }
   }
 
-  WebSocketListenerNode.prototype.reply = function(id,data) {
+  FredEndpointNode.prototype.reply = function(id,data) {
     var session = this._clients[id];
     if (session) {
       try {
@@ -212,7 +216,7 @@ module.exports = function(RED) {
     }
   }
 
-  function WebSocketInNode(n) {
+  function FredInNode(n) {
     RED.nodes.createNode(this,n);
     this.server = (n.client)?n.client:n.server;
     var node = this;
@@ -245,9 +249,9 @@ module.exports = function(RED) {
     });
 
   }
-  RED.nodes.registerType("fred in",WebSocketInNode);
+  RED.nodes.registerType("fred in",FredInNode);
 
-  function WebSocketOutNode(n) {
+  function FredOutNode(n) {
     RED.nodes.createNode(this,n);
     var node = this;
     this.server = (n.client)?n.client:n.server;
@@ -300,5 +304,5 @@ module.exports = function(RED) {
       }
     });
   }
-  RED.nodes.registerType("fred out",WebSocketOutNode);
+  RED.nodes.registerType("fred out",FredOutNode);
 }
