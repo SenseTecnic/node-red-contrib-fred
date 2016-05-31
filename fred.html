@@ -4,11 +4,11 @@
 -->
 
 <script type="text/x-red" data-template-name="fred in">
-    <div class="form-row" id="websocket-server-row">
+    <div class="form-row" id="fred-server-row">
         <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.path"></span></label>
         <input type="text" id="node-input-server">
     </div>
-    <div class="form-row" id="websocket-client-row">
+    <div class="form-row" id="fred-client-row">
         <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.url"></span></label>
         <input type="text" id="node-input-client">
     </div>
@@ -35,11 +35,12 @@
     var FRED_SERVER = false;
 
     function ws_oneditprepare() {
-        $("#websocket-client-row").hide();
+        $("#fred-client-row").hide();
+        $("#fred-server-row").hide();
         if (FRED_SERVER) {
-            $("#websocket-server-row").show();
+            $("#fred-server-row").show();
         } else {
-            $("#websocket-client-row").show();
+            $("#fred-client-row").show();
         }
     }
 
@@ -172,11 +173,11 @@
 
 <!-- fred out Node -->
 <script type="text/x-red" data-template-name="fred out">
-    <div class="form-row" id="websocket-server-row">
+    <div class="form-row" id="fred-server-row">
         <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.path"></span></label>
         <input type="text" id="node-input-server">
     </div>
-    <div class="form-row" id="websocket-client-row">
+    <div class="form-row" id="fred-client-row">
         <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.url"></span></label>
         <input type="text" id="node-input-client">
     </div>
