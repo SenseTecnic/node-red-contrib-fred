@@ -42,12 +42,6 @@
         } else {
             $("#fred-client-row").show();
         }
-
-        if (typeof this.private === 'undefined') {
-            this.private = false;
-            $("#node-config-input-private").prop("checked",false);
-        }
-
     }
 
     function ws_oneditsave() {
@@ -170,6 +164,22 @@
         outputs:0,
         label: function() {
             return this.endpoint;
+        },
+        oneditprepare: function() {
+
+            if (typeof this.private === 'undefined') {
+                this.private = false;
+                $("#node-config-input-private").prop("checked",false);
+                $("#fred-client-apikey-row").hide();
+            }
+            
+            $("#node-config-input-private").change(function() {
+                if(this.checked) {
+                    $("#fred-client-apikey-row").show();
+                } else {
+                    $("#fred-client-apikey-row").hide();
+                }
+            });
         }
     });  
    }
@@ -246,7 +256,7 @@
         <label for="node-config-input-username"><i class="fa fa-user"></i> <span data-i18n="fred.label.username"></span></label>
         <input type="text" id="node-config-input-username" placeholder="FRED username">
     </div>
-    <div class="form-row">
+    <div class="form-row" id="fred-client-apikey-row">
         <label for="node-config-input-apikey"><i class="fa fa-key"></i> <span data-i18n="fred.label.apikey"></span></label>
         <input type="text" id="node-config-input-apikey" placeholder="FRED API key">
     </div>

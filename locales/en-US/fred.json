@@ -4,7 +4,7 @@
             "endpoint": "Endpoint",
             "name": "Name",
             "apikey": "API key",
-            "username": "username",
+            "username": "Username",
             "isprivate": "Private Endpoint"
         },
         "listenon": "Listen on",
