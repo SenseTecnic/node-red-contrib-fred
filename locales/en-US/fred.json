@@ -1,12 +1,11 @@
 {
     "fred": {
         "label": {
-            "type": "Type",
-            "path": "Path",
-            "url": "URL",
+            "endpoint": "Endpoint",
             "name": "Name",
-            "apikey": "FRED API key",
-            "username": "FRED username"
+            "apikey": "API key",
+            "username": "username",
+            "isprivate": "Private Endpoint"
         },
         "listenon": "Listen on",
         "connectto": "Connect to",

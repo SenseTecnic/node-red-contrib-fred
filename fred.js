@@ -4,7 +4,7 @@
  * 
  */
 
-// var p = require('./package.json');
+var p = require('./package.json');
 
 module.exports = function(RED) {
   "use strict";
@@ -12,17 +12,18 @@ module.exports = function(RED) {
   var inspect = require("util").inspect;
   var FRED_UNAUTHORIZED_ERROR = 'unexpected server response (401)';
 
-  // var hostType = process.env.FRED_HOST_TYPE || p.config.hostType
-  // console.log("host type: "+hostType);
-
   // A node red node that is either a FRED client or server
   function FredEndpointNode(n) {
     // Create a RED node
     RED.nodes.createNode(this,n);
     var node = this;
 
+    console.log(JSON.stringify(n));
+
     // Store local copies of the node configuration (as defined in the .html)
-    node.path = n.path;
+    node.isServer = (n.type === 'fred-server');
+    node.private = n.private || false;
+    node.endpoint = n.endpoint;
     node.fredUsername = n.username;
     node.fredAPIKey = n.apikey;
 
@@ -30,8 +31,25 @@ module.exports = function(RED) {
 
     node._inputNodes = [];    // collection of nodes that want to receive events
     node._clients = {};
-    // match absolute url
-    node.isServer = !/^ws{1,2}:\/\//i.test(node.path);
+
+    // TODO: depending on whether it is a client or server, public or private etc. build the endpoint
+    if (node.isServer) {
+      if (node.private) {
+        node.path = "__"+node.endpoint;
+      } else {
+        node.path = "/public/__"+node.endpoint;
+      }
+    } else {
+      node.path = p.config.fredHost;    // change host in the package for testing
+      if (!node.private) {
+        node.path = node.path + "/public/" + node.fredUsername + "/__" + node.endpoint;
+      } else {
+        node.path = node.path + "/api/__" + node.endpoint;
+      }
+    }
+
+    console.log("path: "+node.path);
+
     node.closing = false;
     node.unauthorized = false;
 

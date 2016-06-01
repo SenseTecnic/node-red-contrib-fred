@@ -25,7 +25,8 @@
     "url": "http://sensetecnic.com"
   },
   "config": {
-    "hostType": "client"
+    "hostType": "client",
+    "fredHost": "ws://test-fred.sensetecnic.com"
   },
   "scripts": {
     "postinstall": "node rewriteHtml.js"

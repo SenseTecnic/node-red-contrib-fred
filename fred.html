@@ -5,11 +5,11 @@
 
 <script type="text/x-red" data-template-name="fred in">
     <div class="form-row" id="fred-server-row">
-        <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.path"></span></label>
+        <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
         <input type="text" id="node-input-server">
     </div>
     <div class="form-row" id="fred-client-row">
-        <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.url"></span></label>
+        <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
         <input type="text" id="node-input-client">
     </div>
     <div class="form-row">
@@ -42,6 +42,12 @@
         } else {
             $("#fred-client-row").show();
         }
+
+        if (typeof this.private === 'undefined') {
+            this.private = false;
+            $("#node-config-input-private").prop("checked",false);
+        }
+
     }
 
     function ws_oneditsave() {
@@ -57,7 +63,7 @@
     function ws_label() {
         var nodeid = (this.client)?this.client:this.server;
         var wsNode = RED.nodes.node(nodeid);
-        return this.name||(wsNode?"[ws] "+wsNode.label():"FRED");
+        return this.name||(wsNode?"[FRED] "+wsNode.label():"FRED");
     }
 
     function ws_validateserver() {
@@ -122,22 +128,16 @@
        RED.nodes.registerType('fred-server',{
             category: 'config',
             defaults: {
-                path: {value:"",required:true,validate:RED.validators.regex(/^((?!\/debug\/ws).)*$/) },
+                endpoint: {value:"",
+                    required:true,
+                    validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_\\]{3,}$/) },
+                private: {value:false},
                 wholemsg: {value:"false"}
             },
             inputs:0,
             outputs:0,
             label: function() {
-                var root = RED.settings.httpNodeRoot;
-                if (root.slice(-1) != "/") {
-                    root = root+"/";
-                }
-                if (this.path.charAt(0) == "/") {
-                    root += this.path.slice(1);
-                } else {
-                    root += this.path;
-                }
-                return root;
+                return this.endpoint;
             },
             oneditprepare: function() {
                 var root = RED.settings.httpNodeRoot;
@@ -153,18 +153,23 @@
             }
         });     
    } else {
-      RED.nodes.registerType('fred-client',{
+      RED.nodes.registerType('fred-client', {
         category: 'config',
         defaults: {
-            path: {value:"",required:true,validate:RED.validators.regex(/^((?!\/debug\/ws).)*$/) },
-            username: {value: "", required:true,validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_]{3,}$/) },
-            apikey: {value: "", required:true},
+            endpoint: {value:"",
+                required:true,
+                validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_\\]{3,}$/) },
+            private: {value:false},
+            username: {value: "",
+                required:false,
+                validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_]{3,}$/) },
+            apikey: {value: "", required:false},
             wholemsg: {value:"false"}
         },
         inputs:0,
         outputs:0,
         label: function() {
-            return this.path;
+            return this.endpoint;
         }
     });  
    }
@@ -174,11 +179,11 @@
 <!-- fred out Node -->
 <script type="text/x-red" data-template-name="fred out">
     <div class="form-row" id="fred-server-row">
-        <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.path"></span></label>
+        <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
         <input type="text" id="node-input-server">
     </div>
     <div class="form-row" id="fred-client-row">
-        <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.url"></span></label>
+        <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
         <input type="text" id="node-input-client">
     </div>
     <div class="form-row">
@@ -200,11 +205,15 @@
     should delete the <code>msg._session</code> property within the flow.</p>
 </script>
 
-<!-- WebSocket Server configuration node -->
+<!-- FRED Server configuration node -->
 <script type="text/x-red" data-template-name="fred-server">
     <div class="form-row">
-        <label for="node-config-input-path"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.path"></span></label>
-        <input type="text" id="node-config-input-path" placeholder="/example">
+        <label for="node-config-input-endpoint"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
+        <input type="text" id="node-config-input-endpoint" placeholder="example">
+    </div>
+    <div class="form-row">
+        <input type="checkbox" id="node-config-input-private" style="margin-left: 110px; height: 1em;display: inline-block; width: auto; vertical-align: middle;">
+        <label for="node-config-input-private" data-i18n="fred.label.isprivate" style="width:auto"></label>
     </div>
     <div class="form-row">
         <label for="node-config-input-wholemsg">&nbsp;</label>
@@ -223,11 +232,15 @@
    <p>This configuration node creates a FRED server using the specified endpoint name</p>
 </script>
 
-<!-- WebSocket Client configuration node -->
+<!-- FRED Client configuration node -->
 <script type="text/x-red" data-template-name="fred-client">
     <div class="form-row">
-        <label for="node-config-input-path"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.url"></span></label>
-        <input type="text" id="node-config-input-path" placeholder="wss://fred.sensetecnicom/api/example">
+        <label for="node-config-input-endpoint"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
+        <input type="text" id="node-config-input-endpoint" placeholder="example">
+    </div>
+    <div class="form-row">
+        <input type="checkbox" id="node-config-input-private" style="margin-left: 100px; height: 1em;display: inline-block; width: auto; vertical-align: middle;">
+        <label for="node-config-input-private" style="width:auto" data-i18n="fred.label.isprivate"></label>
     </div>
     <div class="form-row">
         <label for="node-config-input-username"><i class="fa fa-user"></i> <span data-i18n="fred.label.username"></span></label>
