@@ -26,7 +26,7 @@
   },
   "config": {
     "hostType": "client",
-    "fredHost": "ws://test-fred.sensetecnic.com"
+    "fredHost": "wss://fred.sensetecnic.com"
   },
   "scripts": {
     "postinstall": "node rewriteHtml.js"

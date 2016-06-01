@@ -12,5 +12,6 @@ Setting to client (default) will ensure only the fred-client nodes are available
 
 During the postinstall phase, the rewriteHtml.js script runs to modify the fred.html code.
 
+Note that the FRED protocol and host is in the package.json file.  Change it after installation to run against test servers or other FRED deployments.
 
 
