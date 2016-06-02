@@ -39,8 +39,6 @@ module.exports = function(RED) {
     RED.nodes.createNode(this,n);
     var node = this;
 
-    console.log(JSON.stringify(n));
-
     // Store local copies of the node configuration (as defined in the .html)
     node.isServer = (n.type === 'fred-server');
     node.private = n.private || false;
@@ -68,8 +66,6 @@ module.exports = function(RED) {
         node.path = node.path + "/api/__" + node.endpoint;
       }
     }
-
-    console.log("path: "+node.path);
 
     node.closing = false;
     node.unauthorized = false;
