@@ -35,7 +35,6 @@ module.exports = function(RED) {
 
   // A node red node that is either a FRED client or server
   function FredEndpointNode(n) {
-    // Create a RED node
     RED.nodes.createNode(this,n);
     var node = this;
 
@@ -44,7 +43,8 @@ module.exports = function(RED) {
     node.private = n.private || false;
     node.endpoint = n.endpoint;
     node.fredUsername = n.username;
-    node.fredAPIKey = n.apikey;
+    // note - credentials are not passed in with config
+    node.fredAPIKey = node.credentials.apikey;
 
     node.wholemsg = (n.wholemsg === "true");
 
@@ -190,7 +190,12 @@ module.exports = function(RED) {
     });
   }
   RED.nodes.registerType("fred-server",FredEndpointNode);
-  RED.nodes.registerType("fred-client",FredEndpointNode);
+
+  RED.nodes.registerType("fred-client",FredEndpointNode, {
+    credentials: {
+      apikey: {type:"text"}
+    }
+  });
 
   FredEndpointNode.prototype.registerInputNode = function(/*Node*/handler) {
     this._inputNodes.push(handler);
@@ -256,7 +261,6 @@ module.exports = function(RED) {
     this.server = (n.client)?n.client:n.server;
     var node = this;
     this.serverConfig = RED.nodes.getNode(this.server);
-
     if (this.serverConfig) {
       this.serverConfig.registerInputNode(this);
       // TODO: nls

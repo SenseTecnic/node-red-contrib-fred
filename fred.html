@@ -160,8 +160,10 @@
             username: {value: "",
                 required:false,
                 validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_]{3,}$/) },
-            apikey: {value: "", required:false},
             wholemsg: {value:"false"}
+        },
+        credentials: {
+            apikey: {type:"text"}
         },
         inputs:0,
         outputs:0,
