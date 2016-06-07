@@ -44,7 +44,7 @@ module.exports = function(RED) {
     node.endpoint = n.endpoint;
     node.fredUsername = n.username;
     // note - credentials are not passed in with config
-    node.fredAPIKey = node.credentials.apikey;
+    node.fredAPIKey = node.credentials?node.credentials.apikey : null;
 
     node.wholemsg = (n.wholemsg === "true");
 
