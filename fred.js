@@ -71,12 +71,16 @@ module.exports = function(RED) {
     node.unauthorized = false;
 
     function startconn() {    // Connect to remote endpoint
-      var socket = new ws(node.path, {
-        headers: {
-          "X-Auth-User": node.fredUsername,
-          "X-Auth-Key": node.fredAPIKey
-        }
-      });
+      var opts = {};
+      if (node.fredUsername && node.fredAPIKey) {
+        opts = {
+          headers: {
+            "X-Auth-User": node.fredUsername,
+            "X-Auth-Key": node.fredAPIKey
+          }
+        };
+      }
+      var socket = new ws(node.path, opts);
       node.server = socket; // keep for closing
       handleConnection(socket);
     }
