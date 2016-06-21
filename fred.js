@@ -300,6 +300,8 @@ module.exports = function(RED) {
       this.serverConfig.on('closed', function() { 
         if (node.serverConfig && node.serverConfig.unauthorized) {
           node.status({fill: "red",shape:"dot",text:"unauthorized"});
+        } else if (node.serverConfig && !node.serverConfig.username) {
+          node.status({fill: "red",shape:"dot",text: RED._("fred.errors.missing-username")});
         } else {
           node.status({fill:"red",shape:"ring",text:"disconnected"});   
         }
@@ -344,6 +346,8 @@ module.exports = function(RED) {
       this.serverConfig.on('closed', function() { 
         if (node.serverConfig && node.serverConfig.unauthorized) {
           node.status({fill: "red",shape:"dot",text:"unauthorized"});
+        } else if (node.serverConfig && !node.serverConfig.username) {
+          node.status({fill: "red",shape:"dot",text: RED._("fred.errors.missing-username")});
         } else {
           node.status({fill:"red",shape:"ring",text:"disconnected"});   
         }        
