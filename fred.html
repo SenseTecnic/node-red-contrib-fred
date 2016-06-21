@@ -153,12 +153,14 @@
       RED.nodes.registerType('fred-client', {
         category: 'config',
         defaults: {
-            endpoint: {value:"",
+            endpoint: {
+                value:"",
                 required:true,
                 validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_\\]{3,}$/) },
             private: {value:false},
-            username: {value: "",
-                required:false,
+            username: {
+                value: "",
+                required:true,
                 validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_]{3,}$/) },
             wholemsg: {value:"false"}
         },

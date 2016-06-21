@@ -43,6 +43,7 @@ module.exports = function(RED) {
     node.private = n.private || false;
     node.endpoint = n.endpoint;
     node.fredUsername = n.username;
+
     // note - credentials are not passed in with config
     node.fredAPIKey = node.credentials?node.credentials.apikey : null;
 
@@ -51,7 +52,6 @@ module.exports = function(RED) {
     node._inputNodes = [];    // collection of nodes that want to receive events
     node._clients = {};
 
-    // TODO: depending on whether it is a client or server, public or private etc. build the endpoint
     if (node.isServer) {
       if (node.private) {
         node.path = "__"+node.endpoint;
@@ -72,6 +72,7 @@ module.exports = function(RED) {
 
     function startconn() {    // Connect to remote endpoint
       var opts = {};
+
       if (node.fredUsername && node.fredAPIKey) {
         opts = {
           headers: {
@@ -108,6 +109,7 @@ module.exports = function(RED) {
           if (node.tout) { 
             clearTimeout(node.tout); 
           }
+          node.emit('reconnecting');
           node.tout = setTimeout(function(){ startconn(); }, 3000); // try to reconnect every 3 secs... bit fast ?
         }
       });
@@ -124,9 +126,16 @@ module.exports = function(RED) {
           if (node.tout) { 
             clearTimeout(node.tout); 
           }
+          node.emit('reconnecting');
           node.tout = setTimeout(function(){ startconn(); }, 3000); // try to reconnect every 3 secs... bit fast ?
         }
       });
+    }
+
+    // we need the fred username in order to proxy the web socket request, can't do anything without it
+    if (!node.fredUsername) {
+      node.error(RED._("fred.errors.missing-username"));
+      return; // this will be caught in FredEndpointNode.prototype.broadcast and message will be shown on the node
     }
 
     if (node.isServer) {
@@ -241,7 +250,15 @@ module.exports = function(RED) {
         }
       }
       else {
-        this.server.send(data);
+        if (this.server) {
+          this.server.send(data);
+        } else {
+          if (!this.fredUsername) {
+            this.emit('erro', RED._("fred.errors.missing-username")); 
+          } else {
+            this.emit('erro', RED._("fred.errors.connect-error")); 
+          }
+        }        
       }
     }
     catch(e) { // swallow any errors
@@ -281,7 +298,14 @@ module.exports = function(RED) {
         }
       });
       this.serverConfig.on('closed', function() { 
-        node.status({fill:"red",shape:"ring",text:"disconnected"}); 
+        if (node.serverConfig && node.serverConfig.unauthorized) {
+          node.status({fill: "red",shape:"dot",text:"unauthorized"});
+        } else {
+          node.status({fill:"red",shape:"ring",text:"disconnected"});   
+        }
+      });
+      this.serverConfig.on('reconnecting', function() {
+        node.status({fill:"grey",shape:"ring",text:"reconnecting"});
       });
     } else {
       this.error(RED._("fred.errors.missing-conf"));
@@ -318,7 +342,15 @@ module.exports = function(RED) {
         }
       });
       this.serverConfig.on('closed', function() { 
-        node.status({fill:"red",shape:"ring",text:"disconnected"}); 
+        if (node.serverConfig && node.serverConfig.unauthorized) {
+          node.status({fill: "red",shape:"dot",text:"unauthorized"});
+        } else {
+          node.status({fill:"red",shape:"ring",text:"disconnected"});   
+        }        
+      });
+      this.serverConfig.on('reconnecting', function() {
+        console.log("CHECK2")
+        node.status({fill:"grey",shape:"ring",text:"reconnecting"});
       });
     }
     this.on("input", function(msg) {
