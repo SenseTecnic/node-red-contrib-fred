@@ -133,7 +133,7 @@ module.exports = function(RED) {
     }
 
     // we need the fred username in order to proxy the web socket request, can't do anything without it
-    if (!node.fredUsername) {
+    if (!node.fredUsername && !node.isServer) {
       node.error(RED._("fred.errors.missing-username"));
       return; // this will be caught in FredEndpointNode.prototype.broadcast and message will be shown on the node
     }
