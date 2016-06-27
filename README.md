@@ -2,7 +2,7 @@
 
 This module provides a set of nodes for making it easier to connect to a FRED instance from a device like a Raspberry Pi.  
 
-These nodes currently connect to FRED using web sockets.  These nodes are based on the built in web sockets modules that come with Node-RED.  As FRED evolves, the method of connecting to a FRED-hosted Node-RED may change (e.g. to use an MQTT intermediary).  Using these nodes will make sure your device flows will continue to connect to FRED using the most optimal protocol.
+These nodes currently connect to FRED using web sockets.  These nodes are based on the built in web sockets modules that come with Node-RED.  As FRED evolves, the method of connecting to a FRED-hosted Node-RED may change.  Using these nodes will make sure your device flows will continue to connect to FRED using the most well supported protocol.
 
 ## Install
 
@@ -11,12 +11,11 @@ cd ~/.node-red
 npm install node-red-contrib-fred
 ```
 
-Open your Node-RED instance and you should have a FRED input and output node available in the input and
-output categories.
+Open your Node-RED instance and you should have a FRED input and output node available in the input and output categories.
 
 ## Connecting to FRED
 
-On FRED, create an named endpoint for your PC to connect to.  For example, the following flow creates a private FRED input endpoint node called 'example' connected to a debug output node.
+On FRED, create an named endpoint for your Pi or PC to connect to.  For example, the following flow creates a private FRED input endpoint node called 'example' connected to a debug output node.
 
 ```
 [{"id":"a7028d68.57b46","type":"fred-server","z":"dfb73258.cc266","endpoint":"example","private":true,"wholemsg":"false"},{"id":"629ac252.a200ac","type":"debug","z":"dfb73258.cc266","name":"","active":true,"console":"false","complete":"false","x":417.5,"y":274,"wires":[]},{"id":"76df0c2e.be7f14","type":"fred in","z":"dfb73258.cc266","name":"","server":"a7028d68.57b46","client":"","x":183,"y":274,"wires":[["629ac252.a200ac"]]}]
@@ -32,7 +31,7 @@ Note that if you create a public endpoint on FRED, the client  only needs your u
 
 ## Installing on FRED
 
-This information only applies to installing these nodes on the FRED host, and is here (mostly) for Sense Tecnic employee information.
+This information only applies to installing these nodes on the FRED host, and is here (mostly) for FRED licensees.
 
 The package.json file contains a config property 'hostType' that can be 'client' (default) or 'server'.
 
