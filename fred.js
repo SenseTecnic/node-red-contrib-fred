@@ -357,7 +357,6 @@ module.exports = function(RED) {
         }        
       });
       this.serverConfig.on('reconnecting', function() {
-        console.log("CHECK2")
         node.status({fill:"grey",shape:"ring",text:"reconnecting"});
       });
     }
