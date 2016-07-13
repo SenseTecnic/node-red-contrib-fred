@@ -52,6 +52,11 @@ module.exports = function(RED) {
     node._inputNodes = [];    // collection of nodes that want to receive events
     node._clients = {};
 
+    node.startConnCount = 0;
+    node.maxTrials = 3;       //Max connection trials = 3
+    node.reachMaxConn = false;
+
+
     if (node.isServer) {
       if (node.private) {
         node.path = "__"+node.endpoint;
@@ -71,23 +76,29 @@ module.exports = function(RED) {
     node.unauthorized = false;
 
     function startconn() {    // Connect to remote endpoint
-      var opts = {};
+      if (node.startConnCount == (node.maxTrials - 1)) {node.reachMaxConn = true;}
+      if (!node.reachMaxConn){
+        var opts = {};
 
-      if (node.fredUsername && node.fredAPIKey) {
-        opts = {
-          headers: {
-            "X-Auth-User": node.fredUsername,
-            "X-Auth-Key": node.fredAPIKey
-          }
-        };
+        if (node.fredUsername && node.fredAPIKey) {
+          opts = {
+            headers: {
+              "X-Auth-User": node.fredUsername,
+              "X-Auth-Key": node.fredAPIKey
+            }
+          };
+        }
+        var socket = new ws(node.path, opts);
+        node.server = socket; // keep for closing
+        handleConnection(socket);
+      } else {
+        node.emit('maxReConn');
       }
-      var socket = new ws(node.path, opts);
-      node.server = socket; // keep for closing
-      handleConnection(socket);
     }
 
     function handleConnection(/*socket*/socket) {
       var id = (1+Math.random()*4294967295).toString(16);
+       
       if (node.isServer) { 
         node._clients[id] = socket; 
         node.emit('opened',Object.keys(node._clients).length); 
@@ -109,7 +120,12 @@ module.exports = function(RED) {
           if (node.tout) { 
             clearTimeout(node.tout); 
           }
-          node.emit('reconnecting');
+          if (!node.reachMaxConn){
+              node.emit('reconnecting');  
+          } else {
+              node.emit('maxReConn');
+          }
+          
           node.tout = setTimeout(function(){ startconn(); }, 3000); // try to reconnect every 3 secs... bit fast ?
         }
       });
@@ -117,17 +133,22 @@ module.exports = function(RED) {
         node.handleEvent(id,socket,'message',data,flags);
       });
       socket.on('error', function(err) {
-        node.emit('erro', err.message);
+        node.startConnCount ++;
+        if (!node.reachMaxConn) { 
+          node.emit('erro', err.message);
+          if (!node.closing && !node.isServer && !node.unauthorized) {
+            if (err.message === FRED_UNAUTHORIZED_ERROR) {
+              node.unauthorized = true; // don't reconnect again if server returns 401 unauthorized
+            }
+            if (node.tout) { 
+              clearTimeout(node.tout); 
+            }
+            node.emit('reconnecting');
 
-        if (!node.closing && !node.isServer && !node.unauthorized) {
-          if (err.message === FRED_UNAUTHORIZED_ERROR) {
-            node.unauthorized = true; // don't reconnect again if server returns 401 unauthorized
+            node.tout = setTimeout(function(){ startconn(); }, 3000); // try to reconnect every 3 secs... bit fast ?
           }
-          if (node.tout) { 
-            clearTimeout(node.tout); 
-          }
-          node.emit('reconnecting');
-          node.tout = setTimeout(function(){ startconn(); }, 3000); // try to reconnect every 3 secs... bit fast ?
+        } else {
+          node.emit('maxReConn');
         }
       });
     }
@@ -304,9 +325,14 @@ module.exports = function(RED) {
             !node.serverConfig.fredUsername && 
             !node.serverConfig.isServer) {
           node.status({fill: "red",shape:"dot",text: RED._("fred.errors.missing-username")});
-        } else {
+         } else {
           node.status({fill:"red",shape:"ring",text:"disconnected"});   
         }
+      });
+      this.serverConfig.on('maxReConn', function(){
+        var nodeName = (typeof node.name !== 'undefined') ? node.name : "[FRED] " + this.endpoint;
+        node.status({fill:"red",shape:"ring",text:"max tries"}); 
+        node.error(RED._("fred.errors.max-trials") + ": " + nodeName);
       });
       this.serverConfig.on('reconnecting', function() {
         node.status({fill:"grey",shape:"ring",text:"reconnecting"});
@@ -352,9 +378,14 @@ module.exports = function(RED) {
             !node.serverConfig.fredUsername && 
             !node.serverConfig.isServer) {
           node.status({fill: "red",shape:"dot",text: RED._("fred.errors.missing-username")});
-        } else {
+         } else {
           node.status({fill:"red",shape:"ring",text:"disconnected"});   
         }        
+      });
+      this.serverConfig.on('maxReConn', function(){
+        var nodeName = (typeof node.name !== 'undefined') ? node.name : "[FRED] " + this.endpoint;
+        node.status({fill:"red",shape:"ring",text:"max tries"}); 
+        node.error(RED._("fred.errors.max-trials") + ": " + nodeName);
       });
       this.serverConfig.on('reconnecting', function() {
         node.status({fill:"grey",shape:"ring",text:"reconnecting"});
