@@ -16,11 +16,11 @@
             "url1": "By default, <code>payload</code> will contain the data to be sent to, or received from FRED. The client can be configured to send or receive the entire message object as a JSON formatted string."
         },
         "errors": {
-            "connect-error": "An error occured on the ws connection: ",
+            "connect-error": "An error occured on connection with FRED server: ",
             "send-error": "An error occurred while sending: ",
             "missing-conf": "Missing server configuration",
             "missing-username": "Missing username in configuration",
-            "max-trials": "Max trials of reconnection has reached"
+            "max-trials": "Max connection attempts reached. Cannot connect to FRED server."
         }
     }
 }

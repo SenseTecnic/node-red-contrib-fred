@@ -32,6 +32,7 @@ module.exports = function(RED) {
   var ws = require("ws");
   var inspect = require("util").inspect;
   var FRED_UNAUTHORIZED_ERROR = 'unexpected server response (401)';
+  var MAX_CONNECTION_ATTEMPTS = 3;
 
   // A node red node that is either a FRED client or server
   function FredEndpointNode(n) {
@@ -45,17 +46,14 @@ module.exports = function(RED) {
     node.fredUsername = n.username;
 
     // note - credentials are not passed in with config
-    node.fredAPIKey = node.credentials?node.credentials.apikey : null;
+    node.fredAPIKey = node.credentials ? node.credentials.apikey : null;
 
     node.wholemsg = (n.wholemsg === "true");
 
     node._inputNodes = [];    // collection of nodes that want to receive events
     node._clients = {};
 
-    node.startConnCount = 0;
-    node.maxTrials = 3;       //Max connection trials = 3
-    node.reachMaxConn = false;
-
+    node.connectionAttempts = 0;
 
     if (node.isServer) {
       if (node.private) {
@@ -76,10 +74,8 @@ module.exports = function(RED) {
     node.unauthorized = false;
 
     function startconn() {    // Connect to remote endpoint
-      if (node.startConnCount == (node.maxTrials - 1)) {node.reachMaxConn = true;}
-      if (!node.reachMaxConn){
+      if (node.connectionAttempts < MAX_CONNECTION_ATTEMPTS) {
         var opts = {};
-
         if (node.fredUsername && node.fredAPIKey) {
           opts = {
             headers: {
@@ -88,17 +84,19 @@ module.exports = function(RED) {
             }
           };
         }
+        node.connectionAttempts++;
         var socket = new ws(node.path, opts);
         node.server = socket; // keep for closing
         handleConnection(socket);
       } else {
+        node.connectionAttempts = 0;
         node.emit('maxReConn');
       }
     }
 
     function handleConnection(/*socket*/socket) {
       var id = (1+Math.random()*4294967295).toString(16);
-       
+
       if (node.isServer) { 
         node._clients[id] = socket; 
         node.emit('opened',Object.keys(node._clients).length); 
@@ -106,9 +104,11 @@ module.exports = function(RED) {
 
       socket.on('open',function() {
         if (!node.isServer) {
+          node.connectionAttempts = 0;
           node.emit('opened','');
         }
       });
+
       socket.on('close',function() {
         if (node.isServer) { 
           delete node._clients[id]; 
@@ -120,35 +120,26 @@ module.exports = function(RED) {
           if (node.tout) { 
             clearTimeout(node.tout); 
           }
-          if (!node.reachMaxConn){
-              node.emit('reconnecting');  
-          } else {
-              node.emit('maxReConn');
-          }
-          
+          node.emit('reconnecting');
           node.tout = setTimeout(function(){ startconn(); }, 3000); // try to reconnect every 3 secs... bit fast ?
         }
       });
+
       socket.on('message',function(data,flags) {
         node.handleEvent(id,socket,'message',data,flags);
       });
-      socket.on('error', function(err) {
-        node.startConnCount ++;
-        if (!node.reachMaxConn) { 
-          node.emit('erro', err.message);
-          if (!node.closing && !node.isServer && !node.unauthorized) {
-            if (err.message === FRED_UNAUTHORIZED_ERROR) {
-              node.unauthorized = true; // don't reconnect again if server returns 401 unauthorized
-            }
-            if (node.tout) { 
-              clearTimeout(node.tout); 
-            }
-            node.emit('reconnecting');
 
-            node.tout = setTimeout(function(){ startconn(); }, 3000); // try to reconnect every 3 secs... bit fast ?
+      socket.on('error', function(err) {
+        node.emit('erro', err.message);
+        if (!node.closing && !node.isServer && !node.unauthorized) {
+          if (err.message === FRED_UNAUTHORIZED_ERROR) {
+            node.unauthorized = true; // don't reconnect again if server returns 401 unauthorized
           }
-        } else {
-          node.emit('maxReConn');
+          if (node.tout) { 
+            clearTimeout(node.tout); 
+          }
+          node.emit('reconnecting');
+          node.tout = setTimeout(function(){ startconn(); }, 3000); // try to reconnect every 3 secs... bit fast ?
         }
       });
     }
@@ -331,7 +322,7 @@ module.exports = function(RED) {
       });
       this.serverConfig.on('maxReConn', function(){
         var nodeName = (typeof node.name !== 'undefined') ? node.name : "[FRED] " + this.endpoint;
-        node.status({fill:"red",shape:"ring",text:"max tries"}); 
+        node.status({fill:"red",shape:"ring",text:"Failed to connect after " + MAX_CONNECTION_ATTEMPTS + " attempts"}); 
         node.error(RED._("fred.errors.max-trials") + ": " + nodeName);
       });
       this.serverConfig.on('reconnecting', function() {
@@ -384,7 +375,7 @@ module.exports = function(RED) {
       });
       this.serverConfig.on('maxReConn', function(){
         var nodeName = (typeof node.name !== 'undefined') ? node.name : "[FRED] " + this.endpoint;
-        node.status({fill:"red",shape:"ring",text:"max tries"}); 
+        node.status({fill:"red",shape:"ring",text:"Failed to connect after " + MAX_CONNECTION_ATTEMPTS + " attempts"}); 
         node.error(RED._("fred.errors.max-trials") + ": " + nodeName);
       });
       this.serverConfig.on('reconnecting', function() {
