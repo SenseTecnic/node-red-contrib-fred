@@ -20,7 +20,7 @@
             "send-error": "An error occurred while sending: ",
             "missing-conf": "Missing server configuration",
             "missing-username": "Missing username in configuration",
-            "max-trials": "Max connection attempts reached. Cannot connect to FRED server."
+            "max-trials": "Maximum connection attempts reached. Cannot connect to FRED server"
         }
     }
 }

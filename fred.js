@@ -322,7 +322,7 @@ module.exports = function(RED) {
       });
       this.serverConfig.on('maxReConn', function(){
         var nodeName = (typeof node.name !== 'undefined') ? node.name : "[FRED] " + this.endpoint;
-        node.status({fill:"red",shape:"ring",text:"Failed to connect after " + MAX_CONNECTION_ATTEMPTS + " attempts"}); 
+        node.status({fill:"red",shape:"ring",text:"connection failed"}); 
         node.error(RED._("fred.errors.max-trials") + ": " + nodeName);
       });
       this.serverConfig.on('reconnecting', function() {
