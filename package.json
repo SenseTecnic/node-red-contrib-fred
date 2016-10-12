@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-fred",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Node set for linking FRED hosted Node-RED to devices",
   "homepage": "https://fred.sensetecnic.com",
   "license": "Apache-2.0",
@@ -20,26 +20,15 @@
       "fred": "fred.js"
     }
   },
-  "author": {
-    "name": "Ted Huang",
-    "email": "tedh@sensetecnic.com",
-    "url": "http://sensetecnic.com"
-  },
+  "contributors": [
+    {"name": "Ted Huang"},
+    {"name": "Mike Blackstock"}
+  ],
   "config": {
     "hostType": "client",
     "fredHost": "wss://fred.sensetecnic.com"
   },
   "scripts": {
     "postinstall": "node rewriteHtml.js"
-  },
-  "maintainers": [
-    {
-      "name": "Mike Blackstock",
-      "email": "mike@sensetecnic.com"
-    },
-    {
-      "name": "tedh",
-      "email": "tedh@sensetecnic.com"
-    }
-  ]
+  }
 }
