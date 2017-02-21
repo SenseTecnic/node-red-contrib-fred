@@ -4,6 +4,8 @@ This module provides a set of nodes for making it easier to connect to a FRED in
 
 These nodes currently connect to FRED using web sockets.  These nodes are based on the built in web sockets modules that come with Node-RED.  As FRED evolves, the method of connecting to a FRED-hosted Node-RED may change.  Using these nodes will make sure your device flows will continue to connect to FRED using the most well supported protocol.
 
+You can find detail tutorial of this node from [here](http://developers.sensetecnic.com/article/tutorial-connecting-device-node-red-to-cloud-node-red/).
+
 ## Install
 
 ```
