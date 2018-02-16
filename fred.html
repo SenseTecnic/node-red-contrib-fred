@@ -20,228 +20,231 @@
 -->
 
 <script type="text/x-red" data-template-name="fred in">
-    <div class="form-row" id="fred-server-row">
-        <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
-        <input type="text" id="node-input-server">
-    </div>
-    <div class="form-row" id="fred-client-row">
-        <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
-        <input type="text" id="node-input-client">
-    </div>
-    <div class="form-row">
-        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="fred.label.name"></span></label>
-        <input type="text" id="node-input-name" data-i18n="[placeholder]fred.label.name">
-    </div>
+  <div class="form-row" id="fred-server-row">
+    <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
+    <input type="text" id="node-input-server">
+  </div>
+  <div class="form-row" id="fred-client-row">
+    <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
+    <input type="text" id="node-input-client">
+  </div>
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="fred.label.name"></span></label>
+    <input type="text" id="node-input-name" data-i18n="[placeholder]fred.label.name">
+  </div>
 </script>
 
 <script type="text/x-red" data-help-name="fred in">
-    <p>FRED input node.</p>
-    <p>By default, the data received from the FRED endpoint will be in <code>msg.payload</code>.
-    The endpoint can be configured to expect a properly formed JSON string, in which
-    case it will parse the JSON and send on the resulting object as the entire message.</p>
+  <p>FRED input node.</p>
+  <p>By default, the data received from the FRED endpoint will be in <code>msg.payload</code>.
+  The endpoint can be configured to expect a properly formed JSON string, in which
+  case it will parse the JSON and send on the resulting object as the entire message.</p>
 </script>
 
 <script type="text/javascript">
 
 (function() {
-    
-    // NOTE: Do not remove this line - it is set during the postInstall phase
-    // depending on whether node red is hosted on a client (device) or FRED
-    var FRED_SERVER = false;
+  
+  // NOTE: Do not remove this line - it is set during the postInstall phase
+  // depending on whether node red is hosted on a client (device) or FRED
+  var FRED_SERVER = false;
 
-    function ws_oneditprepare() {
-        $("#fred-client-row").hide();
-        $("#fred-server-row").hide();
-        if (FRED_SERVER) {
-            $("#fred-server-row").show();
-        } else {
-            $("#fred-client-row").show();
-        }
-    }
-
-    function ws_oneditsave() {
-        if(!FRED_SERVER) {
-            $("#node-input-server").append('<option value="">Dummy</option>');
-            $("#node-input-server").val('');
-        } else {
-            $("#node-input-client").append('<option value="">Dummy</option>');
-            $("#node-input-client").val('');
-        }
-    }
-
-    function ws_label() {
-        var nodeid = (this.client)?this.client:this.server;
-        var wsNode = RED.nodes.node(nodeid);
-        return this.name||(wsNode?"[FRED] "+wsNode.label():"FRED");
-    }
-
-    function ws_validateserver() {
-        if (!FRED_SERVER) {
-            return true;
-        }
-        else {
-            return RED.nodes.node(this.server) != null;
-        }
-    }
-
-    function ws_validateclient() {
-        if(!FRED_SERVER) {
-            return RED.nodes.node(this.client) != null;
-        }
-        else {
-            return true;
-        }
-    }
-
-    RED.nodes.registerType('fred in',{
-        category: 'input',
-        defaults: {
-            name: {value:""},
-            server: {type:"fred-server", validate: ws_validateserver},
-            client: {type:"fred-client", validate: ws_validateclient}
-        },
-        color:"rgb(255, 255, 255)",
-        inputs:0,
-        outputs:1,
-        icon: "sts.png",
-        labelStyle: function() {
-            return this.name?"node_label_italic":"";
-        },
-        label: ws_label,
-        oneditsave: ws_oneditsave,
-        oneditprepare: ws_oneditprepare,
-    });
-
-    RED.nodes.registerType('fred out',{
-        category: 'output',
-        defaults: {
-            name: {value:""},
-            server: {type:"fred-server", validate: ws_validateserver},
-            client: {type:"fred-client", validate: ws_validateclient}
-        },
-        color:"rgb(255, 255, 255)",
-        inputs:1,
-        outputs:0,
-        icon: "sts.png",
-        align: "right",
-        labelStyle: function() {
-            return this.name?"node_label_italic":"";
-        },
-        label: ws_label,
-        oneditsave: ws_oneditsave,
-        oneditprepare: ws_oneditprepare
-    });
-
-    // only register server if we are hosted on FRED
+  function ws_oneditprepare() {
+    $("#fred-client-row").hide();
+    $("#fred-server-row").hide();
     if (FRED_SERVER) {
-       RED.nodes.registerType('fred-server',{
-            category: 'config',
-            defaults: {
-                endpoint: {value:"",
-                    required:true,
-                    validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_\\]{3,}$/) },
-                private: {value:false},
-                wholemsg: {value:"false"}
-            },
-            inputs:0,
-            outputs:0,
-            label: function() {
-                return this.endpoint;
-            }
-        });     
-   } else {
-      RED.nodes.registerType('fred-client', {
-        category: 'config',
-        defaults: {
-            endpoint: {
-                value:"",
-                required:true,
-                validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_\\]{3,}$/) },
-            private: {value:false},
-            username: {
-                value: "",
-                required:true,
-                validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_]{3,}$/) },
-            wholemsg: {value:"false"}
-        },
-        credentials: {
-            apikey: {type:"text"}
-        },
-        inputs:0,
-        outputs:0,
-        label: function() {
-            return this.endpoint;
-        },
-        oneditprepare: function() {
+      $("#fred-server-row").show();
+    } else {
+      $("#fred-client-row").show();
+    }
+  }
 
-            if (typeof this.private === 'undefined') {
-                this.private = false;
-                $("#node-config-input-private").prop("checked",false);
-                $("#fred-client-apikey-row").hide();
-            }
-            
-            $("#node-config-input-private").change(function() {
-                if(this.checked) {
-                    $("#fred-client-apikey-row").show();
-                } else {
-                    $("#fred-client-apikey-row").hide();
-                }
-            });
+  function ws_oneditsave() {
+    if(!FRED_SERVER) {
+      $("#node-input-server").append('<option value="">Dummy</option>');
+      $("#node-input-server").val('');
+    } else {
+      $("#node-input-client").append('<option value="">Dummy</option>');
+      $("#node-input-client").val('');
+    }
+  }
+
+  function ws_label() {
+    var nodeid = (this.client)?this.client:this.server;
+    var wsNode = RED.nodes.node(nodeid);
+    return this.name||(wsNode?"[FRED] "+wsNode.label():"FRED");
+  }
+
+  function ws_validateserver() {
+    if (!FRED_SERVER) {
+      return true;
+    } else {
+      var serverConfig = RED.nodes.node(this.server);
+      return serverConfig !== null && serverConfig.valid === true;
+    }
+  }
+
+  function ws_validateclient() {
+    console.log(RED.nodes.node(this.client))
+    if(!FRED_SERVER) {
+      var clientConfig = RED.nodes.node(this.client);
+      return clientConfig !== null && clientConfig.valid === true;
+    } else {
+      return true;
+    }
+  }
+
+  RED.nodes.registerType('fred in',{
+    category: 'input',
+    defaults: {
+      name: {value:""},
+      server: {type:"fred-server", validate: ws_validateserver},
+      client: {type:"fred-client", validate: ws_validateclient}
+    },
+    color:"rgb(255, 255, 255)",
+    inputs:0,
+    outputs:1,
+    icon: "sts.png",
+    labelStyle: function() {
+      return this.name?"node_label_italic":"";
+    },
+    label: ws_label,
+    oneditsave: ws_oneditsave,
+    oneditprepare: ws_oneditprepare,
+  });
+
+  RED.nodes.registerType('fred out',{
+    category: 'output',
+    defaults: {
+      name: {value:""},
+      server: {type:"fred-server", validate: ws_validateserver},
+      client: {type:"fred-client", validate: ws_validateclient}
+    },
+    color:"rgb(255, 255, 255)",
+    inputs:1,
+    outputs:0,
+    icon: "sts.png",
+    align: "right",
+    labelStyle: function() {
+      return this.name?"node_label_italic":"";
+    },
+    label: ws_label,
+    oneditsave: ws_oneditsave,
+    oneditprepare: ws_oneditprepare
+  });
+
+  // only register server if we are hosted on FRED
+  if (FRED_SERVER) {
+     RED.nodes.registerType('fred-server', {
+      category: 'config',
+      defaults: {
+        endpoint: {
+          value:"",
+          required:true,
+          validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_\\]{3,}$/) 
+        },
+        private: {value:false},
+        wholemsg: {value:"false"}
+      },
+      inputs:0,
+      outputs:0,
+      label: function() {
+        return this.endpoint;
+      }
+    });     
+   } else {
+    RED.nodes.registerType('fred-client', {
+      category: 'config',
+      defaults: {
+        endpoint: {
+          value:"",
+          required:true,
+          validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_\\]{3,}$/) },
+        private: {value:false},
+        username: {
+          value: "",
+          required:true,
+          validate:RED.validators.regex(/^[a-z]+[a-z0-9\-\_]{3,}$/) },
+        wholemsg: {value:"false"}
+      },
+      credentials: {
+        apikey: {type:"text"}
+      },
+      inputs:0,
+      outputs:0,
+      label: function() {
+        return this.endpoint;
+      },
+      oneditprepare: function() {
+
+        if (typeof this.private === 'undefined') {
+          this.private = false;
+          $("#node-config-input-private").prop("checked",false);
+          $("#fred-client-apikey-row").hide();
         }
-    });  
+        
+        $("#node-config-input-private").change(function() {
+          if(this.checked) {
+            $("#fred-client-apikey-row").show();
+          } else {
+            $("#fred-client-apikey-row").hide();
+          }
+        });
+      }
+    }); 
    }
 })();
 </script>
 
 <!-- fred out Node -->
 <script type="text/x-red" data-template-name="fred out">
-    <div class="form-row" id="fred-server-row">
-        <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
-        <input type="text" id="node-input-server">
-    </div>
-    <div class="form-row" id="fred-client-row">
-        <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
-        <input type="text" id="node-input-client">
-    </div>
-    <div class="form-row">
-        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="fred.label.name"></span></label>
-        <input type="text" id="node-input-name" data-i18n="[placeholder]fred.label.name">
-    </div>
+  <div class="form-row" id="fred-server-row">
+    <label for="node-input-server"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
+    <input type="text" id="node-input-server">
+  </div>
+  <div class="form-row" id="fred-client-row">
+    <label for="node-input-client"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
+    <input type="text" id="node-input-client">
+  </div>
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="fred.label.name"></span></label>
+    <input type="text" id="node-input-name" data-i18n="[placeholder]fred.label.name">
+  </div>
 </script>
 
 <script type="text/x-red" data-help-name="fred out">
-    <p>FRED output node.</p>
-    <p>By default, <code>msg.payload</code> will be sent over the fred. The endpoint
-    can be configured to encode the entire <code>msg</code> object as a JSON string and send that
-    over the fred.</p>
+  <p>FRED output node.</p>
+  <p>By default, <code>msg.payload</code> will be sent over the fred. The endpoint
+  can be configured to encode the entire <code>msg</code> object as a JSON string and send that
+  over the fred.</p>
 
-    <p>If the message arriving at this node started at a fred in node, the message
-    will be sent back to the client that triggered the flow. Otherwise, the message
-    will be broadcast to all connected clients.</p>
-    <p>If you want to broadcast a message that started at a fred in node, you
-    should delete the <code>msg._session</code> property within the flow.</p>
+  <p>If the message arriving at this node started at a fred in node, the message
+  will be sent back to the client that triggered the flow. Otherwise, the message
+  will be broadcast to all connected clients.</p>
+  <p>If you want to broadcast a message that started at a fred in node, you
+  should delete the <code>msg._session</code> property within the flow.</p>
 </script>
 
 <!-- FRED Server configuration node -->
 <script type="text/x-red" data-template-name="fred-server">
-    <div class="form-row">
-        <label for="node-config-input-endpoint"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
-        <input type="text" id="node-config-input-endpoint" placeholder="example">
-    </div>
-    <div class="form-row">
-        <input type="checkbox" id="node-config-input-private" style="margin-left: 110px; height: 1em;display: inline-block; width: auto; vertical-align: middle;">
-        <label for="node-config-input-private" data-i18n="fred.label.isprivate" style="width:auto"></label>
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-wholemsg">&nbsp;</label>
-        <select type="text" id="node-config-input-wholemsg" style="width: 70%;">
-            <option value="false" data-i18n="fred.payload"></option>
-            <option value="true" data-i18n="fred.message"></option>
-        </select>
-    </div>
-    <div class="form-tips">
-        <span data-i18n="[html]fred.tip.path1"></span>
-    </div>
+  <div class="form-row">
+    <label for="node-config-input-endpoint"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
+    <input type="text" id="node-config-input-endpoint" placeholder="example">
+  </div>
+  <div class="form-row">
+    <input type="checkbox" id="node-config-input-private" style="margin-left: 110px; height: 1em;display: inline-block; width: auto; vertical-align: middle;">
+    <label for="node-config-input-private" data-i18n="fred.label.isprivate" style="width:auto"></label>
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-wholemsg">&nbsp;</label>
+    <select type="text" id="node-config-input-wholemsg" style="width: 70%;">
+      <option value="false" data-i18n="fred.payload"></option>
+      <option value="true" data-i18n="fred.message"></option>
+    </select>
+  </div>
+  <div class="form-tips">
+    <span data-i18n="[html]fred.tip.path1"></span>
+  </div>
 </script>
 
 <script type="text/x-red" data-help-name="fred-server">
@@ -250,32 +253,32 @@
 
 <!-- FRED Client configuration node -->
 <script type="text/x-red" data-template-name="fred-client">
-    <div class="form-row">
-        <label for="node-config-input-endpoint"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
-        <input type="text" id="node-config-input-endpoint" placeholder="example">
-    </div>
-    <div class="form-row">
-        <input type="checkbox" id="node-config-input-private" style="margin-left: 100px; height: 1em;display: inline-block; width: auto; vertical-align: middle;">
-        <label for="node-config-input-private" style="width:auto" data-i18n="fred.label.isprivate"></label>
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-username"><i class="fa fa-user"></i> <span data-i18n="fred.label.username"></span></label>
-        <input type="text" id="node-config-input-username" placeholder="FRED username">
-    </div>
-    <div class="form-row" id="fred-client-apikey-row">
-        <label for="node-config-input-apikey"><i class="fa fa-key"></i> <span data-i18n="fred.label.apikey"></span></label>
-        <input type="text" id="node-config-input-apikey" placeholder="FRED API key">
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-wholemsg">&nbsp;</label>
-        <select type="text" id="node-config-input-wholemsg" style="width: 70%;">
-            <option value="false" data-i18n="fred.payload"></option>
-            <option value="true" data-i18n="fred.message"></option>
-        </select>
-    </div>
-    <div class="form-tips">
-        <p><span data-i18n="[html]fred.tip.url1"></span></p>
-    </div>
+  <div class="form-row">
+    <label for="node-config-input-endpoint"><i class="fa fa-bookmark"></i> <span data-i18n="fred.label.endpoint"></span></label>
+    <input type="text" id="node-config-input-endpoint" placeholder="example">
+  </div>
+  <div class="form-row">
+    <input type="checkbox" id="node-config-input-private" style="margin-left: 100px; height: 1em;display: inline-block; width: auto; vertical-align: middle;">
+    <label for="node-config-input-private" style="width:auto" data-i18n="fred.label.isprivate"></label>
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-username"><i class="fa fa-user"></i> <span data-i18n="fred.label.username"></span></label>
+    <input type="text" id="node-config-input-username" placeholder="FRED username">
+  </div>
+  <div class="form-row" id="fred-client-apikey-row">
+    <label for="node-config-input-apikey"><i class="fa fa-key"></i> <span data-i18n="fred.label.apikey"></span></label>
+    <input type="text" id="node-config-input-apikey" placeholder="FRED API key">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-wholemsg">&nbsp;</label>
+    <select type="text" id="node-config-input-wholemsg" style="width: 70%;">
+      <option value="false" data-i18n="fred.payload"></option>
+      <option value="true" data-i18n="fred.message"></option>
+    </select>
+  </div>
+  <div class="form-tips">
+    <p><span data-i18n="[html]fred.tip.url1"></span></p>
+  </div>
 </script>
 
 <script type="text/x-red" data-help-name="fred-client">

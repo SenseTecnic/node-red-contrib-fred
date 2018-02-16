@@ -17,7 +17,7 @@ Open your Node-RED instance and you should have a FRED input and output node ava
 
 ## Connecting to FRED
 
-On FRED, create an named endpoint for your Pi or PC to connect to.  For example, the following flow creates a private FRED input endpoint node called 'example' connected to a debug output node.
+On FRED, create an named endpoint for your Pi or PC to connect to. The endpoint name must start with a letter and consist of only alpha-numeric, dash and underscore characters (url friendly). For example, the following flow creates a private FRED input endpoint node called 'example' connected to a debug output node.
 
 ```
 [{"id":"a7028d68.57b46","type":"fred-server","z":"dfb73258.cc266","endpoint":"example","private":true,"wholemsg":"false"},{"id":"629ac252.a200ac","type":"debug","z":"dfb73258.cc266","name":"","active":true,"console":"false","complete":"false","x":417.5,"y":274,"wires":[]},{"id":"76df0c2e.be7f14","type":"fred in","z":"dfb73258.cc266","name":"","server":"a7028d68.57b46","client":"","x":183,"y":274,"wires":[["629ac252.a200ac"]]}]

@@ -50,7 +50,7 @@ module.exports = function(RED) {
 
     node.wholemsg = (n.wholemsg === "true");
 
-    node._inputNodes = [];    // collection of nodes that want to receive events
+    node._inputNodes = []; // collection of nodes that want to receive events
     node._clients = {};
 
     node.connectionAttempts = 0;
@@ -63,8 +63,15 @@ module.exports = function(RED) {
       }
     } else {
       node.path = p.config.fredHost;    // change host in the package for testing
+
+      // insert fred account name at the begining of the path following the
+      // proxy format: wss://{accountname}.fred.sensetecnic.com/{path}
+      var protocol = node.path.split("://")[0] + "://";
+      var path = node.fredUsername + "." + node.path.split("://")[1];
+      node.path = protocol + path;
+
       if (!node.private) {
-        node.path = node.path + "/public/" + node.fredUsername + "/__" + node.endpoint;
+        node.path = node.path + "/api/public/__" + node.endpoint;
       } else {
         node.path = node.path + "/api/__" + node.endpoint;
       }
@@ -97,9 +104,9 @@ module.exports = function(RED) {
     function handleConnection(/*socket*/socket) {
       var id = (1+Math.random()*4294967295).toString(16);
 
-      if (node.isServer) { 
-        node._clients[id] = socket; 
-        node.emit('opened',Object.keys(node._clients).length); 
+      if (node.isServer) {
+        node._clients[id] = socket;
+        node.emit('opened',Object.keys(node._clients).length);
       }
 
       socket.on('open',function() {
@@ -110,15 +117,15 @@ module.exports = function(RED) {
       });
 
       socket.on('close',function() {
-        if (node.isServer) { 
-          delete node._clients[id]; 
-          node.emit('closed',Object.keys(node._clients).length); 
-        } else { 
-          node.emit('closed'); 
+        if (node.isServer) {
+          delete node._clients[id];
+          node.emit('closed',Object.keys(node._clients).length);
+        } else {
+          node.emit('closed');
         }
         if (!node.closing && !node.isServer && !node.unauthorized) { // don't reconnect if server returns 401 unauthorized
-          if (node.tout) { 
-            clearTimeout(node.tout); 
+          if (node.tout) {
+            clearTimeout(node.tout);
           }
           node.emit('reconnecting');
           node.tout = setTimeout(function(){ startconn(); }, 3000); // try to reconnect every 3 secs... bit fast ?
@@ -135,8 +142,8 @@ module.exports = function(RED) {
           if (err.message === FRED_UNAUTHORIZED_ERROR) {
             node.unauthorized = true; // don't reconnect again if server returns 401 unauthorized
           }
-          if (node.tout) { 
-            clearTimeout(node.tout); 
+          if (node.tout) {
+            clearTimeout(node.tout);
           }
           node.emit('reconnecting');
           node.tout = setTimeout(function(){ startconn(); }, 3000); // try to reconnect every 3 secs... bit fast ?
@@ -162,7 +169,7 @@ module.exports = function(RED) {
         if(event == "error" || event == "upgrade" || event == "listening"){
           node._serverListeners[event] = listener;
         }
-      }
+      };
 
       RED.server.addListener('newListener',storeListener);
 
@@ -208,8 +215,8 @@ module.exports = function(RED) {
       else {
         node.closing = true;
         node.server.close();
-        if (node.tout) { 
-          clearTimeout(node.tout); 
+        if (node.tout) {
+          clearTimeout(node.tout);
         }
       }
     });
@@ -224,7 +231,7 @@ module.exports = function(RED) {
 
   FredEndpointNode.prototype.registerInputNode = function(/*Node*/handler) {
     this._inputNodes.push(handler);
-  }
+  };
 
   FredEndpointNode.prototype.removeInputNode = function(/*Node*/handler) {
     this._inputNodes.forEach(function(node, i, inputNodes) {
@@ -232,7 +239,7 @@ module.exports = function(RED) {
         inputNodes.splice(i, 1);
       }
     });
-  }
+  };
 
   FredEndpointNode.prototype.handleEvent = function(id,/*socket*/socket,/*String*/event,/*Object*/data,/*Object*/flags){
     var msg;
@@ -252,7 +259,7 @@ module.exports = function(RED) {
     for (var i = 0; i < this._inputNodes.length; i++) {
       this._inputNodes[i].send(msg);
     }
-  }
+  };
 
   FredEndpointNode.prototype.broadcast = function(data) {
     try {
@@ -266,17 +273,17 @@ module.exports = function(RED) {
           this.server.send(data);
         } else {
           if (!this.fredUsername) {
-            this.emit('erro', RED._("fred.errors.missing-username")); 
+            this.emit('erro', RED._("fred.errors.missing-username"));
           } else {
-            this.emit('erro', RED._("fred.errors.connect-error")); 
+            this.emit('erro', RED._("fred.errors.connect-error"));
           }
-        }        
+        }
       }
     }
     catch(e) { // swallow any errors
       this.warn("ws:"+i+" : "+e);
     }
-  }
+  };
 
   FredEndpointNode.prototype.reply = function(id,data) {
     var session = this._clients[id];
@@ -287,7 +294,7 @@ module.exports = function(RED) {
       catch(e) { // swallow any errors
       }
     }
-  }
+  };
 
   function FredInNode(n) {
     RED.nodes.createNode(this,n);
@@ -297,32 +304,32 @@ module.exports = function(RED) {
     if (this.serverConfig) {
       this.serverConfig.registerInputNode(this);
       // TODO: nls
-      this.serverConfig.on('opened', function(n) { 
-        node.status({fill:"green",shape:"dot",text:"connected "+n}); 
+      this.serverConfig.on('opened', function(n) {
+        node.status({fill:"green",shape:"dot",text:"connected "+n});
       });
-      this.serverConfig.on('erro', function(err) { 
+      this.serverConfig.on('erro', function(err) {
         if (err) {
           node.error(RED._("fred.errors.connect-error")+inspect(err));
           node.status({fill:"red",shape:"ring",text:err});
         }
         else {
-          node.status({fill:"red",shape:"ring",text:"error"}); 
+          node.status({fill:"red",shape:"ring",text:"error"});
         }
       });
-      this.serverConfig.on('closed', function() { 
+      this.serverConfig.on('closed', function() {
         if (node.serverConfig && node.serverConfig.unauthorized) {
           node.status({fill: "red",shape:"dot",text:"unauthorized"});
-        } else if (node.serverConfig && 
-            !node.serverConfig.fredUsername && 
+        } else if (node.serverConfig &&
+            !node.serverConfig.fredUsername &&
             !node.serverConfig.isServer) {
           node.status({fill: "red",shape:"dot",text: RED._("fred.errors.missing-username")});
-         } else {
-          node.status({fill:"red",shape:"ring",text:"disconnected"});   
+        } else {
+          node.status({fill:"red",shape:"ring",text:"disconnected"});
         }
       });
       this.serverConfig.on('maxReConn', function(){
         var nodeName = (typeof node.name !== 'undefined') ? node.name : "[FRED] " + this.endpoint;
-        node.status({fill:"red",shape:"ring",text:"connection failed"}); 
+        node.status({fill:"red",shape:"ring",text:"connection failed"});
         node.error(RED._("fred.errors.max-trials") + ": " + nodeName);
       });
       this.serverConfig.on('reconnecting', function() {
@@ -350,32 +357,32 @@ module.exports = function(RED) {
     }
     else {
       // TODO: nls
-      this.serverConfig.on('opened', function(n) { 
-        node.status({fill:"green",shape:"dot",text:"connected "+n}); 
+      this.serverConfig.on('opened', function(n) {
+        node.status({fill:"green",shape:"dot",text:"connected "+n});
       });
-      this.serverConfig.on('erro', function(err) { 
+      this.serverConfig.on('erro', function(err) {
         if (err) {
           node.error(RED._("fred.errors.connect-error")+inspect(err));
-          node.status({fill:"red",shape:"ring",text:err}); 
+          node.status({fill:"red",shape:"ring",text:err});
         }
         else {
-          node.status({fill:"red",shape:"ring",text:"error"}); 
+          node.status({fill:"red",shape:"ring",text:"error"});
         }
       });
-      this.serverConfig.on('closed', function() { 
+      this.serverConfig.on('closed', function() {
         if (node.serverConfig && node.serverConfig.unauthorized) {
           node.status({fill: "red",shape:"dot",text:"unauthorized"});
-        } else if (node.serverConfig && 
-            !node.serverConfig.fredUsername && 
+        } else if (node.serverConfig &&
+            !node.serverConfig.fredUsername &&
             !node.serverConfig.isServer) {
           node.status({fill: "red",shape:"dot",text: RED._("fred.errors.missing-username")});
-         } else {
-          node.status({fill:"red",shape:"ring",text:"disconnected"});   
-        }        
+        } else {
+          node.status({fill:"red",shape:"ring",text:"disconnected"});
+        }
       });
       this.serverConfig.on('maxReConn', function(){
         var nodeName = (typeof node.name !== 'undefined') ? node.name : "[FRED] " + this.endpoint;
-        node.status({fill:"red",shape:"ring",text:"Failed to connect after " + MAX_CONNECTION_ATTEMPTS + " attempts"}); 
+        node.status({fill:"red",shape:"ring",text:"Failed to connect after " + MAX_CONNECTION_ATTEMPTS + " attempts"});
         node.error(RED._("fred.errors.max-trials") + ": " + nodeName);
       });
       this.serverConfig.on('reconnecting', function() {
@@ -409,4 +416,4 @@ module.exports = function(RED) {
     });
   }
   RED.nodes.registerType("fred out",FredOutNode);
-}
+};
